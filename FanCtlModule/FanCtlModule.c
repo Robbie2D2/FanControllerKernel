@@ -5,7 +5,7 @@
 #include <linux/kernel.h>
 #include <linux/init.h>
 
-//static struct kset *fc_kset;
+static struct kset *fc_kset;
 
 static int temp = 0;
 
@@ -41,12 +41,11 @@ int fan_init(void)
 	printk(KERN_INFO "FanCtlModule: Se cargo el modulo\n");
 
 	// Creando kset para FanController en /sys/fan_controller
-       	/*fc_kset = kset_create_and_add("fan_controller", NULL, NULL);
+       	fc_kset = kset_create_and_add("fan_controller", NULL, NULL);
 	if (!fc_kset)
-		return -ENOMEM;*/
+		return -ENOMEM;
 
-	  // create the kobject sysfs entry at /sys/ebb -- probably not an ideal location!
-	sensor_kobj = kobject_create_and_add("fc", kernel_kobj->parent); // kernel_kobj points to /sys/kernel
+	sensor_kobj = kobject_create_and_add("sensor", &fc_kset->kobj); // kernel_kobj points to /sys/kernel
 	if(!sensor_kobj){
 		printk(KERN_ALERT "EBB Button: failed to create kobject mapping\n");
 	return -ENOMEM;
@@ -67,8 +66,7 @@ void fan_cleanup(void)
 {
   // Destruyendo kset
   kobject_put(sensor_kobj);
-  
-  //kset_unregister(fc_kset);
+  kset_unregister(fc_kset);
   printk(KERN_INFO "FanCtlModule: Se libero el modulo\n");
 }
 

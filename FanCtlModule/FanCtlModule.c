@@ -7,9 +7,10 @@
 #include <linux/thermal.h>
 #include <linux/kthread.h>
 #include <linux/sched.h>
+#include <linux/gpio.h>
 
 #define MSECS 500 //Numero de milisegundos para dormir el hilo del kernel 
-
+#define PIN 7
 //Estructura de kset
 static struct kset *fc_kset;
 //Estructura de tarea
@@ -44,7 +45,7 @@ static struct attribute *fc_attrs[] = {
 };
 //Estructura con el grupo de atributos
 static struct attribute_group attr_group = {
-      .attrs = fc_attrs,                ///< The attributes array defined just above
+      .attrs = fc_attrs,
 };
 
 
@@ -56,7 +57,7 @@ int thread_function(void *data){
 		if(result){
 			printk(KERN_INFO "error al leer temp\n");
 		}
-		printk (KERN_INFO "temp_get:%lu\n",temp_get);
+		//printk (KERN_INFO "temp_get:%lu\n",temp_get);
 		temp=temp_get;
 		//mdelay(1000);
 		set_current_state(TASK_INTERRUPTIBLE);
@@ -72,7 +73,19 @@ int fan_init(void)
 	data=20;
 	
 	printk(KERN_INFO "FanCtlModule: Se cargo el modulo\n");
-
+	result=gpio_request(PIN,"gpio1");
+	if(result)
+	{
+		printk(KERN_INFO "FanCtlModule: Fallo importar pin GPIO\n");
+		return result;
+	}
+	result=gpio_direction_output(PIN,0);
+	if(result)
+	{
+		printk(KERN_INFO "FanCtlModule: Fallo direccion pin GPIO\n");
+		return result;
+	}
+	gpio_set_value(PIN,1);
 	//Creando kset para FanController en /sys/fan_controller
        	fc_kset = kset_create_and_add("fan_controller", NULL, NULL);
 	if (!fc_kset)
@@ -103,6 +116,9 @@ int fan_init(void)
 // Salida del modulo
 void fan_cleanup(void)
 {
+	gpio_set_value(PIN,0);
+	gpio_unexport(PIN);
+	gpio_free(PIN);
   	//Destruye kobject decrementando el contador de instancias
 	kobject_put(sensor_kobj);
 	//Destruyendo kset
